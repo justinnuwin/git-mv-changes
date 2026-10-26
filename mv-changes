@@ -50,6 +50,9 @@ fi
 if [[ $BRANCH == "HEAD" ]]; then
   echo "You are in detached state, which is not allowed for this command." && exit 1
 fi
+if [[ -n `git status --porcelain --ignore-submodules=dirty` ]]; then
+  echo "You have uncommitted (staged, unstaged, or untracked) changes. Commit or stash them first:" && git status --short --ignore-submodules=dirty && exit 1
+fi
 if [[ `git log ^HEAD $FROM $TO | wc -l` -gt 0 ]]; then
   echo "$FROM_PARAM, $TO_PARAM are unreachable from current HEAD, switch to the branch, please" && exit 1
 fi
@@ -72,11 +75,11 @@ git reset -q $FROM~ -- $WHAT
 # if move changes down in the history we don't need fixup commit for $FROM
 # but anyway we have to commit to create a fixup commit for $TO
 if [[ "$DIRECTION" == "down" ]]; then
-  git commit -q -m 'tmp - will be deleted automatically'
+  git commit -q -m 'tmp - will be deleted automatically' --no-verify
 else
-  git commit -q --fixup=$FROM
+  git commit -q --fixup=$FROM --no-verify
 fi
-git add $WHAT && git commit -q --fixup=$TO
+git add $WHAT && git commit -q --fixup=$TO --no-verify
 # do-nothing editor to get rid of user actions
 GIT_SEQUENCE_EDITOR=: git rebase --autosquash -q -i $START_REV~ || `git rebase --abort && git checkout $BRANCH && exit 1`
 
